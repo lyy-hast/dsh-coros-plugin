@@ -1,0 +1,46 @@
+{
+  "name": "dsh-coros-sport",
+  "version": "0.1.0",
+  "description": "COROS Sport panel for DeepSeek Harness: sign in to COROS inside the app and read your devices, workouts and health.",
+  "type": "module",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "author": "dsh-coros-sport contributors",
+  "keywords": [
+    "dsh",
+    "dsh-bundle",
+    "cordis",
+    "coros",
+    "mcp"
+  ],
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/coros-api.js",
+    "lib/coros-auth.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}
