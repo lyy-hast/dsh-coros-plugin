@@ -465,7 +465,7 @@ page padding = 22.4（clamp），内容宽 595.2
 | P1-3 | 健康与睡眠：2×2 KPI + 7 日睡眠柱 + 均值注脚 | 现状裸日期 + 无标签 meta 形成第三套对齐基线，且深睡/REM 解析了却不用 | `.hgrid` 2 列；柱图 7 个 div（**v2.1 修订**：非当天柱 `--cv2-hue-blue`、当天 `label-primary`，见 §A7-5；原 `bg-overlay` 柱可见性不足），高 40 + gap 8，顶部 11px 数值、底部 11px 日期；`role="img"` + `aria-label`；注脚给 7 天均值/深睡/REM |
 | P1-4 | 落地「成绩预测」分区 | `predictions[]` 已解析、DICT 已定义、渲染零引用 | 2×2 格，值 15/600/22；标签由 `*Prediction` 键裁剪为 `5 km / 10 km / Half marathon / Marathon` |
 | P1-5 | 训练安排行加日期列，空态不再消失 | 现在 `empty` 直接 `return null`，用户看不到“没有计划”这个事实 | `.pl-when` 76px（今天/明天/11-01）；空态用 C5 的空态块，**保留分区标题**；不再截断——周课表按日期升序整周展示（v2.3 修订：原「只取前 3 条」会把周日长距离切掉） |
-| P1-7 | 训练计划按周分页 | 四周 16 节平铺，把下面的运动/健康区块整段推到首屏之外，而阅读时只需看即将执行的一周 | `.plan-pager`：`flex / space-between`，两侧 `.tbtn` 文字按钮（`disabled` 时 `label-secondary` + `opacity .5`），中间 `.plan-page` 12/18 `label-secondary` + `tabular-nums`，文案「第 N / 4 周」；只渲染当前周，切周是本地状态、不重新请求 |
+| P1-7 | 训练计划独立成详情页，看板只留入口 | **v2.4 修订**：原方案（P1-7 旧版：面板内区块 + 按周分页）仍在看板里塞进整块课表，量本身把运动/健康区块推下首屏；而看板的问题是「今天练什么」，不是「四周怎么排」。计划是低频复核、低频写入的页面，应当按需进入 | 看板「训练安排」标题右侧 `.cv2-sec-a`「详细」（`.cv2-sec-end` 内的文字按钮，22px 高、`margin:-1px -6px -1px 0`），点击切到 `PlanPage`：`Panel` 里 `view` 状态在 `dashboard` / `plan` 之间切换，不引入 hash 或 history（面板是宿主的一个 slot，宿主拥有 URL）。计划页顶部 `.cv2-backrow` 内「返回看板」文字按钮（`ArrowLeftIcon` + `.cv2-tbtn`，`margin-left:-8px`），`.cv2-detail .cv2-head` 上边距降到 8；四周不再分页、整份平铺，当前周 `.cv2-plan-week.is-live` 加 `.cv2-plan-tag`「本周」。切换视图时 `.cv2-root` 回到顶部（走 ref，避免同屏两个面板互滚）。**令牌过期时页面把状态交还 `Panel` 切回登录卡片**（重试「重新读取」在过期态永远失败），登录回来仍停在这一页 |
 | P1-6 | 按钮改文字按钮，页头 `align-items:flex-end` | 32px 描边按钮（边框 1.26:1）与 20px 标题重心差 6px，页头噪声大 | `.tbtn`：28px 高、无边框、hover 用 `box-shadow 0 0 0 6px bg-overlay`；退出登录用 `label-secondary`；`focus-visible` 2px `state-business-primary` + offset 2 |
 
 ### P2（打磨）
