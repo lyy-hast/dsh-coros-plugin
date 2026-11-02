@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Local probe scripts, captured API samples and extracted references. These are
+# working material for development and must never be published: they contain
+# captured tokens and COROS response dumps.
+.review/
+.review-probe/
+
+# Editor
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and scratch
+*.log
+.tmp-esbuild/
