@@ -1,6 +1,6 @@
 {
   "name": "dsh-coros-sport",
-  "version": "0.3.0",
+  "version": "1.0.2",
   "description": "COROS Sport panel for DeepSeek Harness: sign in to COROS inside the app, read your devices, workouts and health, and create a four-week training plan after an explicit confirmation.",
   "type": "module",
   "main": "lib/index.js",
