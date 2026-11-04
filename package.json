@@ -6,6 +6,14 @@
   "main": "lib/index.js",
   "license": "MIT",
   "author": "dsh-coros-sport contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lyy-hast/dsh-coros-plugin.git"
+  },
+  "homepage": "https://github.com/lyy-hast/dsh-coros-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/lyy-hast/dsh-coros-plugin/issues"
+  },
   "keywords": [
     "dsh",
     "dsh-bundle",
