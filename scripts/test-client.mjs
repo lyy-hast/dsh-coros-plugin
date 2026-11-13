@@ -630,8 +630,29 @@ const library = {
   total: 1,
   plans: [{ title: '4 周日常健康跑计划', status: 'In progress', startDate: '2026-11-02', endDate: '2026-11-29' }],
 }
+const dashboardRun = {
+  sportType: 'Outdoor run',
+  sportTypeCode: '100',
+  date: '2026-11-02',
+  distance: '5.82 km',
+  duration: '40:00',
+  averagePace: "6'52\" /km",
+  averageHeartRate: '150 bpm',
+}
 route('/coros-sport/overview', {
-  sections: { schedule, planLibrary: library, profile: { nickname: '跑者' } },
+  sections: {
+    schedule,
+    planLibrary: library,
+    profile: { nickname: '跑者' },
+    recovery: { percent: 82, level: 'good', estimatedFullRecovery: '2h' },
+    fitness: { vo2max: 57, runningLevel: 82, thresholdPace: "4'30\" /km" },
+    trainingLoad: { loadRatio: '0.68', shortTermLoad: '54', longTermLoad: '79', comment: 'Performance' },
+    activities: {
+      records: [dashboardRun],
+      weekRecords: [dashboardRun],
+      monthRecords: [dashboardRun, { ...dashboardRun, date: '2026-11-01', distance: '122.68 km' }],
+    },
+  },
   errors: [],
   range: { days: 7 },
   fetchedAt: '2026-11-02T10:00:00+08:00',
@@ -649,6 +670,17 @@ assert.ok(panelText.includes('跑者'), 'the dashboard must render once signed i
 // alone cannot stand for "the dashboard is showing".)
 assert.ok(panelText.includes('5.82 km'), 'the schedule must show this week')
 assert.ok(panelText.includes('近期运动'), 'the dashboard must keep its other sections')
+// Hero metric order and the run-volume strip are product requirements, not
+// incidental decoration: assert the actual labels and both volume windows.
+const runningAt = panelText.indexOf('跑步水平')
+const vo2At = panelText.indexOf('最大摄氧量')
+assert.ok(runningAt >= 0 && vo2At > runningAt, 'running level must come before VO2max')
+assert.ok(panelText.includes('训练负荷比'), 'the hero must render the training-load ratio')
+assert.ok(panelText.includes('0.68'), 'the training-load ratio value must render')
+assert.ok(panelText.includes('综合评分'), 'metric tooltips must render their descriptions')
+assert.ok(panelText.includes('短期训练负荷'), 'the training-load tooltip must render')
+assert.ok(panelText.includes('跑量'), 'the hero must render the volume strip')
+assert.ok(panelText.includes('128.5'), 'the month-to-date volume must render')
 // Cutting the plan out of the dashboard is the ask: the block, its weeks, its
 // warnings and its write button may not appear while scanning today's numbers.
 assert.ok(!panelText.includes('写入不可撤销'), 'the dashboard must not show the plan warnings: ' + panelText)
