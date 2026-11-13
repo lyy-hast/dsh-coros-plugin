@@ -217,12 +217,21 @@ const source = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'
 // internals from production code only to make them testable is a worse trade.
 const instrumented = source.replace(
   "return { inject: ['slots'], apply: apply }",
-  "window.__t = { Panel: Panel, PlanPage: PlanPage, ScheduleSection: ScheduleSection, makeT: makeT };\n    return { inject: ['slots'], apply: apply }",
+  "window.__t = { Panel: Panel, Dashboard: Dashboard, PlanPage: PlanPage, ScheduleSection: ScheduleSection, makeT: makeT, clearCachedOverview: clearCachedOverview };\n    return { inject: ['slots'], apply: apply }",
 )
 assert.notEqual(instrumented, source, 'the harness must have found the factory return')
 
 let factory
-const sandbox = { __ModuleLoader__: { load: (options) => { factory = options.factory } } }
+function createStorage() {
+  const values = new Map()
+  return {
+    getItem: (key) => (values.has(key) ? values.get(key) : null),
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+    clear: () => values.clear(),
+  }
+}
+const sandbox = { __ModuleLoader__: { load: (options) => { factory = options.factory } }, localStorage: createStorage() }
 new Function('window', 'React', 'module', 'exports', instrumented)(sandbox, React, { exports: {} }, {})
 assert.equal(typeof factory, 'function', 'the bundle must register a factory')
 
@@ -295,7 +304,8 @@ async function settle(view, rounds = 6) {
 
 /* -------------------------------------------------------------- test data */
 
-const { Panel, PlanPage, ScheduleSection, makeT } = sandbox.__t
+const { Panel, Dashboard, PlanPage, ScheduleSection, makeT, clearCachedOverview } = sandbox.__t
+assert.equal(typeof Dashboard, 'function', 'the dashboard is testable on its own')
 assert.equal(typeof PlanPage, 'function', 'the plan is a page component now')
 assert.equal(typeof ScheduleSection, 'function')
 const t = makeT('zh')
@@ -790,5 +800,80 @@ for (const stale of [
 ]) {
   assert.equal(dictSource.includes(stale + ':'), false, `stale dict key ${stale} must be removed`)
 }
+
+/* ============================ dashboard cache and refresh feedback */
+
+// The dashboard is the expensive part of entering the panel. These tests pin
+// the two asks: a remount paints the previous response before the network
+// answers, and a manual refresh shows a busy icon plus a success/failure toast.
+clearCachedOverview()
+
+const overviewA = {
+  sections: { schedule, planLibrary: library, profile: { nickname: '跑者 A' } },
+  errors: [],
+  range: { days: 7 },
+  fetchedAt: '2026-11-02T10:00:00+08:00',
+}
+const overviewB = {
+  sections: { schedule, planLibrary: library, profile: { nickname: '跑者 B' } },
+  errors: [],
+  range: { days: 7 },
+  fetchedAt: '2026-11-02T11:00:00+08:00',
+}
+
+route('/coros-sport/overview', overviewA)
+const dashboard = mount(Dashboard, { t, locale: 'zh', onSignOut: () => {}, onExpired: () => {}, onOpenPlan: () => {}, getUiWorkspace: () => null })
+let dashboardText = texts(dashboard.tree).join(' | ')
+assert.ok(dashboardText.includes('正在读取高驰数据'), 'the first-ever open still has a skeleton while /overview answers: ' + dashboardText)
+await settle(dashboard)
+dashboardText = texts(dashboard.tree).join(' | ')
+assert.ok(dashboardText.includes('跑者 A'), 'the live response must replace the skeleton: ' + dashboardText)
+const storedOverview = JSON.parse(sandbox.localStorage.getItem('dsh-coros-sport:overview:v1'))
+assert.equal(storedOverview.data.sections.profile.nickname, '跑者 A', 'a successful overview must be cached for the next open')
+
+const remount = mount(Dashboard, { t, locale: 'zh', onSignOut: () => {}, onExpired: () => {}, onOpenPlan: () => {}, getUiWorkspace: () => null })
+const firstFrame = texts(remount.tree).join(' | ')
+assert.ok(firstFrame.includes('跑者 A'), 'a remount must paint the cached profile before /overview answers: ' + firstFrame)
+assert.ok(!firstFrame.includes('正在读取高驰数据'), 'a remount with a cache must not show the first-load skeleton: ' + firstFrame)
+await settle(remount)
+assert.ok(texts(remount.tree).join(' | ').includes('跑者 A'), 'the background refresh keeps the cached content: ' + texts(remount.tree).join(' | '))
+
+// Manual refresh: the icon gets the busy class immediately, and the response
+// produces the toast. The route changes to B so the assertion proves the panel
+// actually painted the new response, not just re-rendered old data.
+route('/coros-sport/overview', overviewB)
+const refreshMark = calls.length
+remount.act(() => findButton(remount.tree, '刷新').props.onClick())
+const busyClasses = classes(remount.tree)
+assert.ok(busyClasses.some((name) => name.includes('cv2-refresh') && name.includes('is-refreshing')), 'clicking refresh must spin the icon: ' + JSON.stringify(busyClasses))
+assert.equal(findButton(remount.tree, '刷新').props['aria-disabled'], 'true', 'the refresh button must report its busy state while the request runs')
+assert.ok(texts(remount.tree).join(' | ').includes('刷新中…'), 'the busy state must also be available to assistive tech')
+await flush()
+remount.act(() => {})
+dashboardText = texts(remount.tree).join(' | ')
+assert.ok(dashboardText.includes('跑者 B'), 'the refreshed response must land on the dashboard: ' + dashboardText)
+assert.ok(dashboardText.includes('数据已更新'), 'a successful refresh must show its toast: ' + dashboardText)
+assert.equal(calls.slice(refreshMark).filter((call) => call.url === '/coros-sport/overview').length, 1, 'one click costs one request')
+assert.ok(!classes(remount.tree).some((name) => name.includes('is-refreshing')), 'the spinner must stop when the request finishes')
+assert.equal(JSON.parse(sandbox.localStorage.getItem('dsh-coros-sport:overview:v1')).data.sections.profile.nickname, '跑者 B', 'a refresh must overwrite the cached overview')
+
+// Failure: the old data stays, and the toast says so rather than pretending
+// the refresh worked. This is the complement the old UI was missing.
+route('/coros-sport/overview', { error: 'boom' }, { ok: false, status: 500 })
+remount.act(() => findButton(remount.tree, '刷新').props.onClick())
+await flush()
+remount.act(() => {})
+dashboardText = texts(remount.tree).join(' | ')
+assert.ok(dashboardText.includes('跑者 B'), 'a failed refresh must keep the last data: ' + dashboardText)
+assert.ok(dashboardText.includes('刷新失败，已保留上次数据'), 'a failed refresh must show a failure toast: ' + dashboardText)
+assert.ok(dashboardText.includes('读取失败，已保留上次数据'), 'the existing retained-data banner must remain: ' + dashboardText)
+
+// Dismissing the toast clears it without touching the dashboard.
+const beforeDismiss = calls.length
+remount.act(() => findButton(remount.tree, '×').props.onClick())
+dashboardText = texts(remount.tree).join(' | ')
+assert.ok(!dashboardText.includes('刷新失败，已保留上次数据'), 'the toast must be dismissible: ' + dashboardText)
+assert.equal(calls.length, beforeDismiss, 'dismissing a toast must not refetch anything')
+console.log('dashboard cache + refresh feedback ok')
 
 console.log('\nok — the plan page renders, gates and writes; the dashboard links in and back')
