@@ -34,6 +34,7 @@
 | 设备 | 绑定的高驰设备名称、蓝牙 ID、型号、序列号、保修到期 | `queryDevices` |
 | 恢复 | 恢复百分比、状态等级、预计完全恢复时间 | `queryRecoveryStatus` |
 | 体能 | VO₂max、跑力等级、阈值配速、5K/10K/半马/全马预测 | `queryFitnessAssessmentOverview` |
+| 训练负荷 | 短期负荷、长期负荷、负荷比 | `queryTrainingLoadAssessment` |
 | 运动记录 | 近 7 天活动的类型、日期、地点、距离、时长、配速、平均心率、卡路里 | `querySportRecords` |
 | 健康 | 逐日步数、卡路里、锻炼时长、压力、睡眠分期，以及静息心率与 HRV 基线 | `queryDailyHealthData` |
 | 训练安排 | 本周安排的训练课；账号里是否已有训练计划（整份四周计划的详情在「训练安排 → 详细」里看） | `queryTrainingSchedule`、`queryTrainingPlanLibrary` |
